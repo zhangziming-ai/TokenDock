@@ -1,16 +1,18 @@
 # TokenDock
 
-TokenDock is a native macOS menu bar app for Codex usage visibility.
+TokenDock is a native macOS menu bar utility built for Codex users. It brings Codex official 5-hour and 7-day quota percentages, local token usage, recent session activity, and a reserved API Tokens section into one clean and polished dropdown, so essential usage information is always one click away.
 
-It keeps the information developers care about one click away: Codex official 5h/7d quota percentages, local token totals from this Mac, the latest session event, and a reserved API Tokens area for future OpenAI/Anthropic/API usage sources.
+TokenDock is designed to be clear, lightweight, and practical. It reads local Codex session logs, separates official quota percentages from local token totals, and presents them with compact progress bars and visually distinct sections. This makes it easy to understand your current usage at a glance without opening settings pages or relying on ambiguous indicators.
 
-TokenDock is intentionally read-only. It parses local Codex session logs under `~/.codex/sessions/**/rollout-*.jsonl`, displays the latest `rate_limits` and `token_count` events, and does not modify Codex configuration or call private web endpoints.
+All data is parsed locally in read-only mode. TokenDock does not modify Codex configuration and does not call private web endpoints. Whether you are coding daily, maintaining open-source projects, or tracking AI-assisted development usage, TokenDock gives you a convenient, reliable, and visually refined way to stay aware of your Codex consumption.
 
 ## 中文简介
 
-TokenDock 是一个原生 macOS 菜单栏工具，用来快速查看 Codex 用量。它会把 Codex 官方 5 时/7 天额度、本机 token 统计、最近会话事件和未来 API Tokens 区域放到一个紧凑菜单里。
+TokenDock 是一款原生 macOS 菜单栏工具，专为 Codex 使用者打造。它将 Codex 官方 5 小时 / 7 天额度、本机 token 消耗、最近会话状态以及未来 API Tokens 用量入口集中在一个简洁美观的菜单中，让关键用量信息无需打开设置页面即可随手查看。
 
-TokenDock 只读解析本机 `~/.codex/sessions/**/rollout-*.jsonl` 日志，不修改 Codex 配置，也不调用私有网页接口。当前菜单已中文化，并将低频诊断信息收进 `详细信息` 二级菜单，减少下拉面板长度。
+TokenDock 注重清晰、轻量和实用性。它会自动读取本机 Codex 会话日志，区分官方额度百分比与本机 token 统计，并用紧凑的进度条和分区布局呈现，让你一眼就能判断当前额度使用情况。所有数据均来自本地日志，只读解析，不修改 Codex 配置，也不依赖私有网页接口。
+
+无论是日常编码、长时间维护项目，还是追踪 AI 辅助开发过程中的 token 消耗，TokenDock 都能提供一个常驻、直观、可靠的用量入口。
 
 ## Why TokenDock?
 
