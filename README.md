@@ -6,6 +6,12 @@ It keeps the information developers care about one click away: Codex official 5h
 
 TokenDock is intentionally read-only. It parses local Codex session logs under `~/.codex/sessions/**/rollout-*.jsonl`, displays the latest `rate_limits` and `token_count` events, and does not modify Codex configuration or call private web endpoints.
 
+## 中文简介
+
+TokenDock 是一个原生 macOS 菜单栏工具，用来快速查看 Codex 用量。它会把 Codex 官方 5 时/7 天额度、本机 token 统计、最近会话事件和未来 API Tokens 区域放到一个紧凑菜单里。
+
+TokenDock 只读解析本机 `~/.codex/sessions/**/rollout-*.jsonl` 日志，不修改 Codex 配置，也不调用私有网页接口。当前菜单已中文化，并将低频诊断信息收进 `详细信息` 二级菜单，减少下拉面板长度。
+
 ## Why TokenDock?
 
 Codex usage information is useful, but checking it through settings panels is slow and easy to forget. Existing menu bar or island-style tools may show ambiguous numbers, mix different accounting methods, or fail to explain where the data comes from.

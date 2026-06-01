@@ -52,6 +52,14 @@ struct RateLimitWindow: Equatable {
         if windowMinutes % 60 == 0 { return "\(windowMinutes / 60)h" }
         return "\(windowMinutes)m"
     }
+
+    var localizedLabel: String {
+        if windowMinutes == 300 { return "5时" }
+        if windowMinutes == 10_080 { return "7天" }
+        if windowMinutes % 1_440 == 0 { return "\(windowMinutes / 1_440)天" }
+        if windowMinutes % 60 == 0 { return "\(windowMinutes / 60)时" }
+        return "\(windowMinutes)分"
+    }
 }
 
 struct RateLimits: Equatable {
@@ -80,7 +88,7 @@ struct APIUsageSnapshot: Equatable {
         todayUsage: nil,
         lastFiveHoursUsage: nil,
         lastSevenDaysUsage: nil,
-        sourceDescription: "Waiting for API usage source"
+        sourceDescription: "等待 API 数据源"
     )
 }
 
@@ -91,6 +99,8 @@ struct UsageSnapshot: Equatable {
     let eventsScanned: Int
     let latestEvent: UsageEvent?
     let latestRateLimitEvent: UsageEvent?
+    let rateLimitEvents: [UsageEvent]
+    let displayRateLimits: RateLimits?
     let todayUsage: TokenUsage
     let lastFiveHoursUsage: TokenUsage
     let lastSevenDaysUsage: TokenUsage
@@ -98,12 +108,12 @@ struct UsageSnapshot: Equatable {
     let errorMessage: String?
 
     var menuTitle: String {
-        guard let limits = latestRateLimitEvent?.rateLimits else {
+        guard let limits = displayRateLimits else {
             return "Codex --"
         }
 
-        let primary = limits.primary.map { "\($0.label) \(formatPercent($0.usedPercent))" }
-        let secondary = limits.secondary.map { "\($0.label) \(formatPercent($0.usedPercent))" }
+        let primary = limits.primary.map { "\($0.localizedLabel) \(formatPercent($0.usedPercent))" }
+        let secondary = limits.secondary.map { "\($0.localizedLabel) \(formatPercent($0.usedPercent))" }
         let parts = [primary, secondary].compactMap { $0 }
         return parts.isEmpty ? "Codex --" : "Codex " + parts.joined(separator: " · ")
     }
@@ -127,6 +137,8 @@ enum CodexUsageParser {
                 eventsScanned: 0,
                 latestEvent: nil,
                 latestRateLimitEvent: nil,
+                rateLimitEvents: [],
+                displayRateLimits: nil,
                 todayUsage: TokenUsage(),
                 lastFiveHoursUsage: TokenUsage(),
                 lastSevenDaysUsage: TokenUsage(),
@@ -147,6 +159,8 @@ enum CodexUsageParser {
                 eventsScanned: 0,
                 latestEvent: nil,
                 latestRateLimitEvent: nil,
+                rateLimitEvents: [],
+                displayRateLimits: nil,
                 todayUsage: TokenUsage(),
                 lastFiveHoursUsage: TokenUsage(),
                 lastSevenDaysUsage: TokenUsage(),
@@ -167,6 +181,7 @@ enum CodexUsageParser {
         var eventsScanned = 0
         var latestEvent: UsageEvent?
         var latestRateLimitEvent: UsageEvent?
+        var rateLimitEvents: [UsageEvent] = []
         var todayUsage = TokenUsage()
         var fiveHourUsage = TokenUsage()
         var sevenDayUsage = TokenUsage()
@@ -192,6 +207,9 @@ enum CodexUsageParser {
                    latestRateLimitEvent == nil || event.timestamp > latestRateLimitEvent!.timestamp {
                     latestRateLimitEvent = event
                 }
+                if event.rateLimits != nil {
+                    rateLimitEvents.append(event)
+                }
 
                 guard let lastUsage = event.lastUsage else { return }
                 if event.timestamp >= startOfToday {
@@ -206,6 +224,8 @@ enum CodexUsageParser {
             }
         }
 
+        let sortedRateLimitEvents = rateLimitEvents.sorted { $0.timestamp > $1.timestamp }
+
         return UsageSnapshot(
             scannedAt: now,
             sourceRoot: rootURL.path,
@@ -213,6 +233,8 @@ enum CodexUsageParser {
             eventsScanned: eventsScanned,
             latestEvent: latestEvent,
             latestRateLimitEvent: latestRateLimitEvent,
+            rateLimitEvents: sortedRateLimitEvents,
+            displayRateLimits: aggregateDisplayRateLimits(from: sortedRateLimitEvents),
             todayUsage: todayUsage,
             lastFiveHoursUsage: fiveHourUsage,
             lastSevenDaysUsage: sevenDayUsage,
@@ -283,6 +305,35 @@ enum CodexUsageParser {
             resetsAt: parseUnixDate(dictionary["resets_at"])
         )
     }
+
+    private static func aggregateDisplayRateLimits(from events: [UsageEvent]) -> RateLimits? {
+        let rateLimits = events.compactMap(\.rateLimits)
+        guard !rateLimits.isEmpty else { return nil }
+
+        let latestMetadata = rateLimits.first
+        let primary = aggregateWindow(from: events.compactMap { $0.rateLimits?.primary })
+        let secondary = aggregateWindow(from: events.compactMap { $0.rateLimits?.secondary })
+
+        guard primary != nil || secondary != nil else { return nil }
+        return RateLimits(
+            planType: latestMetadata?.planType,
+            limitID: latestMetadata?.limitID,
+            primary: primary,
+            secondary: secondary
+        )
+    }
+
+    private static func aggregateWindow(from windows: [RateLimitWindow]) -> RateLimitWindow? {
+        guard !windows.isEmpty else { return nil }
+
+        if let latestReset = windows.compactMap(\.resetsAt).max() {
+            return windows
+                .filter { $0.resetsAt == latestReset }
+                .max { $0.usedPercent < $1.usedPercent }
+        }
+
+        return windows.max { $0.usedPercent < $1.usedPercent }
+    }
 }
 
 @MainActor
@@ -329,129 +380,67 @@ final class StatusBarController: NSObject {
 
     private func buildMenu(snapshot: UsageSnapshot) -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(sectionHeader(
+        menu.addItem(compactSectionHeader(
             title: snapshot.menuTitle,
-            subtitle: "Updated \(formatDateTime(snapshot.scannedAt))",
+            subtitle: "已更新 \(formatTimeOnly(snapshot.scannedAt))",
             accent: .systemBlue
         ))
+        menu.addItem(spacerItem(height: 3))
+        addOfficialQuotaSection(snapshot, to: menu)
+
         menu.addItem(spacerItem(height: 4))
-
-        if let event = snapshot.latestRateLimitEvent, let limits = event.rateLimits {
-            menu.addItem(sectionHeader(
-                title: "Official quota",
-                subtitle: "Codex rate_limits · \(formatDateTime(event.timestamp))",
-                accent: .systemBlue
-            ))
-            let plan = limits.planType ?? "unknown"
-            let limitID = limits.limitID ?? "unknown"
-            menu.addItem(metricRow(
-                label: "Plan",
-                value: plan,
-                note: "limit: \(limitID)",
-                accent: .systemBlue
-            ))
-            addWindowRows(limits.primary, to: menu, accent: .systemBlue)
-            addWindowRows(limits.secondary, to: menu, accent: .systemBlue)
-        } else {
-            menu.addItem(sectionHeader(
-                title: "Official quota",
-                subtitle: "No rate-limit data found",
-                accent: .systemBlue
-            ))
-        }
-
-        menu.addItem(spacerItem(height: 6))
         addAPIUsageSection(snapshot.apiUsage, to: menu)
 
-        menu.addItem(spacerItem(height: 6))
-
-        if let latest = snapshot.latestEvent {
-            menu.addItem(sectionHeader(
-                title: "Latest event",
-                subtitle: formatDateTime(latest.timestamp),
-                accent: .systemPurple
-            ))
-            if let lastUsage = latest.lastUsage {
-                addUsageRows(lastUsage, title: "Last response", to: menu, accent: .systemPurple)
-            } else {
-                menu.addItem(metricRow(
-                    label: "Last response",
-                    value: "--",
-                    note: "No token data",
-                    accent: .systemPurple
-                ))
-            }
-            if let totalUsage = latest.totalUsage {
-                menu.addItem(metricRow(
-                    label: "Session total",
-                    value: totalUsage.compact,
-                    note: "current rollout file",
-                    accent: .systemPurple
-                ))
-            }
-        } else {
-            menu.addItem(sectionHeader(
-                title: "Latest event",
-                subtitle: "No token event found",
-                accent: .systemPurple
-            ))
-        }
-
-        menu.addItem(spacerItem(height: 6))
-        menu.addItem(sectionHeader(
-            title: "Local token totals",
-            subtitle: "from this Mac's Codex logs",
-            accent: .systemGreen
-        ))
-        addPeriodUsage(snapshot.todayUsage, label: "Today", to: menu)
-        addPeriodUsage(snapshot.lastFiveHoursUsage, label: "Last 5h", to: menu)
-        addPeriodUsage(snapshot.lastSevenDaysUsage, label: "Last 7d", to: menu)
-        menu.addItem(metricRow(
-            label: "Scanned",
-            value: "\(snapshot.eventsScanned) events",
-            note: "\(snapshot.filesScanned) files",
-            accent: .systemGreen
-        ))
-
-        if let source = snapshot.latestEvent?.sourceFile {
-            menu.addItem(spacerItem(height: 6))
-            menu.addItem(sectionHeader(
-                title: "Source",
-                subtitle: shortenHome(source),
-                accent: .systemGray
-            ))
-        }
-
-        if let errorMessage = snapshot.errorMessage {
-            menu.addItem(spacerItem(height: 6))
-            menu.addItem(sectionHeader(
-                title: "Parser notice",
-                subtitle: errorMessage,
-                accent: .systemRed
-            ))
-        }
+        menu.addItem(spacerItem(height: 4))
+        addLocalTotalsSection(snapshot, to: menu)
 
         menu.addItem(NSMenuItem.separator())
-        let refreshItem = NSMenuItem(title: "Refresh", action: #selector(refreshFromMenu), keyEquivalent: "r")
+        let detailsItem = NSMenuItem(title: "详细信息", action: nil, keyEquivalent: "")
+        detailsItem.submenu = buildDetailsMenu(snapshot: snapshot)
+        menu.addItem(detailsItem)
+
+        menu.addItem(NSMenuItem.separator())
+        let refreshItem = NSMenuItem(title: "刷新", action: #selector(refreshFromMenu), keyEquivalent: "r")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
-        let openItem = NSMenuItem(title: "Open Codex sessions folder", action: #selector(openSessionsFolder), keyEquivalent: "o")
+        let openItem = NSMenuItem(title: "打开 Codex 会话文件夹", action: #selector(openSessionsFolder), keyEquivalent: "o")
         openItem.target = self
         menu.addItem(openItem)
 
         menu.addItem(NSMenuItem.separator())
-        let quitItem = NSMenuItem(title: "Quit TokenDock", action: #selector(quit), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "退出 TokenDock", action: #selector(quit), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
         return menu
     }
 
+    private func addOfficialQuotaSection(_ snapshot: UsageSnapshot, to menu: NSMenu) {
+        menu.addItem(compactSectionHeader(
+            title: "官方额度",
+            subtitle: snapshot.displayRateLimits == nil ? "暂无数据" : "同窗口最高值 · \(formatTimeOnly(snapshot.scannedAt))",
+            accent: .systemBlue
+        ))
+
+        guard let limits = snapshot.displayRateLimits else {
+            menu.addItem(compactMetricRow(
+                label: "官方额度",
+                value: "暂无数据",
+                note: "未找到 rate_limits",
+                accent: .systemBlue
+            ))
+            return
+        }
+
+        addWindowRows(limits.primary, to: menu, accent: .systemBlue)
+        addWindowRows(limits.secondary, to: menu, accent: .systemBlue)
+    }
+
     private func addWindowRows(_ window: RateLimitWindow?, to menu: NSMenu, accent: NSColor) {
         guard let window else { return }
-        let reset = window.resetsAt.map { "resets in \(formatRelative($0)) · \(formatDateTime($0))" } ?? "reset time unknown"
-        menu.addItem(progressRow(
-            label: "\(window.label) window",
+        let reset = window.resetsAt.map { "重置 \(formatRelativeCN($0))" } ?? "重置时间未知"
+        menu.addItem(compactProgressRow(
+            label: "\(window.localizedLabel)额度",
             usedPercent: window.usedPercent,
             leftPercent: window.leftPercent,
             note: reset,
@@ -460,53 +449,302 @@ final class StatusBarController: NSObject {
     }
 
     private func addAPIUsageSection(_ apiUsage: APIUsageSnapshot, to menu: NSMenu) {
-        menu.addItem(sectionHeader(
+        menu.addItem(compactSectionHeader(
             title: "API Tokens",
             subtitle: apiUsage.sourceDescription,
             accent: .systemOrange
         ))
-        addOptionalUsage(apiUsage.todayUsage, label: "Today", to: menu, accent: .systemOrange)
-        addOptionalUsage(apiUsage.lastFiveHoursUsage, label: "Last 5h", to: menu, accent: .systemOrange)
-        addOptionalUsage(apiUsage.lastSevenDaysUsage, label: "Last 7d", to: menu, accent: .systemOrange)
-    }
-
-    private func addOptionalUsage(_ usage: TokenUsage?, label: String, to menu: NSMenu, accent: NSColor) {
-        menu.addItem(metricRow(
-            label: label,
-            value: usage?.compact ?? "--",
-            note: usage.map { "input \(formatTokenCount($0.input)) · output \(formatTokenCount($0.output)) · reasoning \(formatTokenCount($0.reasoning))" } ?? "waiting for data source",
-            accent: accent
+        let value = "今日 \(apiUsage.todayUsage?.compact ?? "--") · 5时 \(apiUsage.lastFiveHoursUsage?.compact ?? "--") · 7天 \(apiUsage.lastSevenDaysUsage?.compact ?? "--")"
+        menu.addItem(compactMetricRow(
+            label: "API",
+            value: value,
+            note: "预留 API 用量入口",
+            accent: .systemOrange
         ))
     }
 
-    private func addUsageRows(_ usage: TokenUsage, title: String, to menu: NSMenu, accent: NSColor) {
-        menu.addItem(metricRow(
-            label: title,
-            value: usage.compact,
-            note: "input \(formatTokenCount(usage.input)) · cached \(formatTokenCount(usage.cachedInput))",
-            accent: accent
-        ))
-        menu.addItem(metricRow(
-            label: "Generated",
-            value: formatTokenCount(usage.output + usage.reasoning),
-            note: "output \(formatTokenCount(usage.output)) · reasoning \(formatTokenCount(usage.reasoning))",
-            accent: accent
-        ))
-    }
-
-    private func addPeriodUsage(_ usage: TokenUsage, label: String, to menu: NSMenu) {
-        menu.addItem(metricRow(
-            label: label,
-            value: usage.compact,
-            note: "input \(formatTokenCount(usage.input)) · output \(formatTokenCount(usage.output)) · reasoning \(formatTokenCount(usage.reasoning))",
+    private func addLocalTotalsSection(_ snapshot: UsageSnapshot, to menu: NSMenu) {
+        menu.addItem(compactSectionHeader(
+            title: "本机统计",
+            subtitle: "来自这台 Mac 的 Codex 日志",
             accent: .systemGreen
         ))
+        menu.addItem(compactMetricRow(
+            label: "Token",
+            value: "今日 \(snapshot.todayUsage.compact) · 5时 \(snapshot.lastFiveHoursUsage.compact) · 7天 \(snapshot.lastSevenDaysUsage.compact)",
+            note: "本机日志统计",
+            accent: .systemGreen
+        ))
+    }
+
+    private func buildDetailsMenu(snapshot: UsageSnapshot) -> NSMenu {
+        let menu = NSMenu()
+
+        addDetailSection("官方额度明细", to: menu)
+        if let limits = snapshot.displayRateLimits {
+            menu.addItem(disabled("首层口径：最新 reset 窗口内最高 used%"))
+            menu.addItem(disabled("Plan：\(limits.planType ?? "unknown")"))
+            menu.addItem(disabled("Limit ID：\(limits.limitID ?? "unknown")"))
+            for window in [limits.primary, limits.secondary].compactMap({ $0 }) {
+                let reset = window.resetsAt.map(formatDateTime) ?? "未知"
+                menu.addItem(disabled("\(window.localizedLabel)：已用 \(formatPercent(window.usedPercent)) · 剩余 \(formatPercent(window.leftPercent))"))
+                menu.addItem(disabled("重置：\(reset)"))
+            }
+        } else {
+            menu.addItem(disabled("官方额度：暂无数据"))
+        }
+
+        let eventsBySource = latestRateLimitEventsBySource(snapshot.rateLimitEvents)
+        if !eventsBySource.isEmpty {
+            menu.addItem(NSMenuItem.separator())
+            addDetailSection("各会话原始值", to: menu)
+            for event in eventsBySource {
+                let sourceURL = URL(fileURLWithPath: event.sourceFile)
+                let limits = event.rateLimits
+                let primary = limits?.primary.map { "\($0.localizedLabel) \(formatPercent($0.usedPercent))" } ?? "5时 --"
+                let secondary = limits?.secondary.map { "\($0.localizedLabel) \(formatPercent($0.usedPercent))" } ?? "7天 --"
+                menu.addItem(disabled(sourceURL.lastPathComponent))
+                menu.addItem(disabled("\(formatTimeOnly(event.timestamp)) · \(primary) · \(secondary)"))
+            }
+        }
+
+        menu.addItem(NSMenuItem.separator())
+        addDetailSection("最近事件", to: menu)
+        if let latest = snapshot.latestEvent {
+            menu.addItem(disabled("时间：\(formatDateTime(latest.timestamp))"))
+            if let lastUsage = latest.lastUsage {
+                menu.addItem(disabled("输入：\(formatTokenCount(lastUsage.input))"))
+                menu.addItem(disabled("缓存输入：\(formatTokenCount(lastUsage.cachedInput))"))
+                menu.addItem(disabled("输出：\(formatTokenCount(lastUsage.output))"))
+                menu.addItem(disabled("推理：\(formatTokenCount(lastUsage.reasoning))"))
+                menu.addItem(disabled("本次合计：\(formatTokenCount(lastUsage.total))"))
+            } else {
+                menu.addItem(disabled("最近事件：无 token 数据"))
+            }
+            if let totalUsage = latest.totalUsage {
+                menu.addItem(disabled("会话总量：\(formatTokenCount(totalUsage.total))"))
+            }
+        } else {
+            menu.addItem(disabled("最近事件：暂无"))
+        }
+
+        menu.addItem(NSMenuItem.separator())
+        addDetailSection("数据来源", to: menu)
+        menu.addItem(disabled("扫描文件：\(snapshot.filesScanned) 个"))
+        menu.addItem(disabled("扫描事件：\(snapshot.eventsScanned) 条"))
+        if let source = snapshot.latestEvent?.sourceFile {
+            let sourceURL = URL(fileURLWithPath: source)
+            menu.addItem(disabled("文件：\(sourceURL.lastPathComponent)"))
+            menu.addItem(disabled("目录：\(shortenHome(sourceURL.deletingLastPathComponent().path))"))
+        } else {
+            menu.addItem(disabled("暂无 rollout 文件"))
+        }
+
+        if let errorMessage = snapshot.errorMessage {
+            menu.addItem(NSMenuItem.separator())
+            addDetailSection("解析提示", to: menu)
+            menu.addItem(disabled(errorMessage))
+        }
+
+        return menu
+    }
+
+    private func addDetailSection(_ title: String, to menu: NSMenu) {
+        let item = disabled(title)
+        item.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        menu.addItem(item)
+    }
+
+    private func latestRateLimitEventsBySource(_ events: [UsageEvent]) -> [UsageEvent] {
+        var latestBySource: [String: UsageEvent] = [:]
+        for event in events {
+            guard event.rateLimits != nil else { continue }
+            if latestBySource[event.sourceFile] == nil || event.timestamp > latestBySource[event.sourceFile]!.timestamp {
+                latestBySource[event.sourceFile] = event
+            }
+        }
+        return latestBySource.values.sorted { $0.timestamp > $1.timestamp }
     }
 
     private func disabled(_ title: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.isEnabled = false
         return item
+    }
+
+    private func compactSectionHeader(title: String, subtitle: String, accent: NSColor) -> NSMenuItem {
+        let height: CGFloat = 34
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: menuWidth, height: height))
+        container.wantsLayer = true
+        container.layer?.backgroundColor = accent.withAlphaComponent(0.10).cgColor
+        container.layer?.cornerRadius = 6
+
+        let stripe = NSView()
+        stripe.wantsLayer = true
+        stripe.layer?.backgroundColor = accent.cgColor
+        stripe.layer?.cornerRadius = 2
+
+        let titleLabel = label(
+            title,
+            font: .systemFont(ofSize: 12, weight: .semibold),
+            color: .labelColor
+        )
+        let subtitleLabel = label(
+            subtitle,
+            font: .systemFont(ofSize: 10, weight: .regular),
+            color: .secondaryLabelColor,
+            alignment: .right,
+            lineBreak: .byTruncatingMiddle
+        )
+
+        [stripe, titleLabel, subtitleLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            stripe.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 10),
+            stripe.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            stripe.widthAnchor.constraint(equalToConstant: 5),
+            stripe.heightAnchor.constraint(equalToConstant: 18),
+
+            titleLabel.leadingAnchor.constraint(equalTo: stripe.trailingAnchor, constant: 9),
+            titleLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            titleLabel.widthAnchor.constraint(equalToConstant: 116),
+
+            subtitleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 8),
+            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            subtitleLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+
+        return customItem(view: container)
+    }
+
+    private func compactProgressRow(label rowLabel: String, usedPercent: Double, leftPercent: Double, note: String, accent: NSColor) -> NSMenuItem {
+        let height: CGFloat = 48
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: menuWidth, height: height))
+        container.wantsLayer = true
+        container.layer?.backgroundColor = accent.withAlphaComponent(0.045).cgColor
+        container.layer?.cornerRadius = 6
+
+        let nameLabel = label(
+            rowLabel,
+            font: .systemFont(ofSize: 11, weight: .medium),
+            color: .secondaryLabelColor
+        )
+        let valueLabel = label(
+            "已用 \(formatPercent(usedPercent)) · 剩余 \(formatPercent(leftPercent))",
+            font: .monospacedDigitSystemFont(ofSize: 12, weight: .semibold),
+            color: .labelColor,
+            alignment: .right
+        )
+        let track = NSView()
+        track.wantsLayer = true
+        track.layer?.backgroundColor = accent.withAlphaComponent(0.16).cgColor
+        track.layer?.cornerRadius = 3
+
+        let fill = NSView()
+        fill.wantsLayer = true
+        fill.layer?.backgroundColor = accent.withAlphaComponent(0.86).cgColor
+        fill.layer?.cornerRadius = 3
+
+        let noteLabel = label(
+            note,
+            font: .systemFont(ofSize: 9, weight: .regular),
+            color: .tertiaryLabelColor,
+            lineBreak: .byTruncatingTail
+        )
+
+        [nameLabel, valueLabel, track, noteLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview($0)
+        }
+        fill.translatesAutoresizingMaskIntoConstraints = false
+        track.addSubview(fill)
+
+        let rawFillRatio = CGFloat(clamped(usedPercent, lower: 0, upper: 100) / 100)
+        let fillRatio = max(rawFillRatio, 0.001)
+        fill.isHidden = rawFillRatio <= 0
+
+        NSLayoutConstraint.activate([
+            nameLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            nameLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            nameLabel.widthAnchor.constraint(equalToConstant: 80),
+
+            valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            valueLabel.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
+            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: nameLabel.trailingAnchor, constant: 8),
+
+            track.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
+            track.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            track.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
+            track.heightAnchor.constraint(equalToConstant: 6),
+
+            fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
+            fill.topAnchor.constraint(equalTo: track.topAnchor),
+            fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
+            fill.widthAnchor.constraint(equalTo: track.widthAnchor, multiplier: fillRatio),
+
+            noteLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
+            noteLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            noteLabel.topAnchor.constraint(equalTo: track.bottomAnchor, constant: 3)
+        ])
+
+        return customItem(view: container)
+    }
+
+    private func compactMetricRow(label rowLabel: String, value: String, note: String, accent: NSColor) -> NSMenuItem {
+        let height: CGFloat = 36
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: menuWidth, height: height))
+        container.wantsLayer = true
+        container.layer?.backgroundColor = accent.withAlphaComponent(0.045).cgColor
+        container.layer?.cornerRadius = 6
+
+        let nameLabel = label(
+            rowLabel,
+            font: .systemFont(ofSize: 11, weight: .medium),
+            color: .secondaryLabelColor
+        )
+        let valueLabel = label(
+            value,
+            font: .monospacedDigitSystemFont(ofSize: 12, weight: .semibold),
+            color: .labelColor,
+            alignment: .right,
+            lineBreak: .byTruncatingMiddle
+        )
+        let noteLabel = label(
+            note,
+            font: .systemFont(ofSize: 9, weight: .regular),
+            color: .tertiaryLabelColor,
+            lineBreak: .byTruncatingTail
+        )
+
+        [nameLabel, valueLabel, noteLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview($0)
+        }
+
+        NSLayoutConstraint.activate([
+            nameLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            nameLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 5),
+            nameLabel.widthAnchor.constraint(equalToConstant: 58),
+
+            valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            valueLabel.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
+            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: nameLabel.trailingAnchor, constant: 8),
+
+            noteLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
+            noteLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            noteLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 1)
+        ])
+
+        return customItem(view: container)
     }
 
     private func sectionHeader(title: String, subtitle: String, accent: NSColor) -> NSMenuItem {
@@ -739,6 +977,17 @@ func printSnapshot(_ snapshot: UsageSnapshot) {
     print("source_root=\(snapshot.sourceRoot)")
     print("files=\(snapshot.filesScanned) events=\(snapshot.eventsScanned)")
 
+    if let limits = snapshot.displayRateLimits {
+        print("display_rate_limits=same-reset-window-max")
+        print("display_plan=\(limits.planType ?? "unknown") display_limit_id=\(limits.limitID ?? "unknown")")
+        for window in [limits.primary, limits.secondary].compactMap({ $0 }) {
+            let reset = window.resetsAt.map(isoString) ?? "unknown"
+            print("display_\(window.key)=\(window.label) used=\(formatPercent(window.usedPercent)) left=\(formatPercent(window.leftPercent)) reset=\(reset)")
+        }
+    } else {
+        print("display_rate_limits=none")
+    }
+
     if let event = snapshot.latestRateLimitEvent, let limits = event.rateLimits {
         print("rate_limit_event=\(isoString(event.timestamp))")
         print("plan=\(limits.planType ?? "unknown") limit_id=\(limits.limitID ?? "unknown")")
@@ -749,6 +998,7 @@ func printSnapshot(_ snapshot: UsageSnapshot) {
     } else {
         print("rate_limits=none")
     }
+    print("rate_limit_events=\(snapshot.rateLimitEvents.count)")
 
     if let latest = snapshot.latestEvent {
         print("latest_event=\(isoString(latest.timestamp))")
@@ -813,6 +1063,13 @@ func formatDateTime(_ date: Date) -> String {
     return formatter.string(from: date)
 }
 
+func formatTimeOnly(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .none
+    formatter.timeStyle = .medium
+    return formatter.string(from: date)
+}
+
 func formatRelative(_ date: Date) -> String {
     let seconds = Int(date.timeIntervalSinceNow)
     if seconds <= 0 { return "now" }
@@ -824,6 +1081,19 @@ func formatRelative(_ date: Date) -> String {
         return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
     }
     return "\(seconds / 86_400)d"
+}
+
+func formatRelativeCN(_ date: Date) -> String {
+    let seconds = Int(date.timeIntervalSinceNow)
+    if seconds <= 0 { return "现在" }
+    if seconds < 60 { return "<1分" }
+    if seconds < 3_600 { return "\(Int(ceil(Double(seconds) / 60)))分后" }
+    if seconds < 86_400 {
+        let hours = seconds / 3_600
+        let minutes = Int(ceil(Double(seconds % 3_600) / 60))
+        return minutes > 0 ? "\(hours)时\(minutes)分后" : "\(hours)时后"
+    }
+    return "\(seconds / 86_400)天后"
 }
 
 func isoString(_ date: Date) -> String {
