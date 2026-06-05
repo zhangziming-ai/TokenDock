@@ -1,0 +1,53 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="34" fill="#F4F6F8"/>
+  <rect x="78" y="70" width="1044" height="58" rx="18" fill="#FFFFFF"/>
+  <text x="112" y="106" fill="#1E293B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="24" font-weight="650">TokenDock</text>
+  <rect x="867" y="82" width="213" height="34" rx="17" fill="#0F172A"/>
+  <text x="890" y="105" fill="#FFFFFF" font-family="SF Mono,Menlo,monospace" font-size="17" font-weight="650">Codex 5时 42% · 7天 18%</text>
+
+  <rect x="344" y="158" width="512" height="508" rx="22" fill="#FFFFFF" stroke="#D8DEE8"/>
+  <rect x="366" y="182" width="468" height="44" rx="12" fill="#EAF2FF"/>
+  <rect x="380" y="193" width="6" height="22" rx="3" fill="#3B82F6"/>
+  <text x="398" y="209" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" font-weight="700">Codex 5时 42% · 7天 18%</text>
+  <text x="706" y="209" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">已更新 14:32:08</text>
+
+  <rect x="366" y="238" width="468" height="36" rx="10" fill="#EAF2FF"/>
+  <rect x="380" y="247" width="6" height="18" rx="3" fill="#3B82F6"/>
+  <text x="398" y="262" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="700">官方额度</text>
+  <text x="636" y="262" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">同窗口最高值</text>
+
+  <rect x="366" y="281" width="468" height="58" rx="10" fill="#F7FAFF"/>
+  <text x="386" y="305" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="650">5时额度</text>
+  <text x="658" y="305" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="15" font-weight="700">已用 42% · 剩余 58%</text>
+  <rect x="386" y="318" width="428" height="8" rx="4" fill="#CFE0FF"/>
+  <rect x="386" y="318" width="180" height="8" rx="4" fill="#3B82F6"/>
+  <text x="386" y="335" fill="#94A3B8" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">重置 2时18分后</text>
+
+  <rect x="366" y="346" width="468" height="58" rx="10" fill="#F7FAFF"/>
+  <text x="386" y="370" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="650">7天额度</text>
+  <text x="658" y="370" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="15" font-weight="700">已用 18% · 剩余 82%</text>
+  <rect x="386" y="383" width="428" height="8" rx="4" fill="#CFE0FF"/>
+  <rect x="386" y="383" width="77" height="8" rx="4" fill="#3B82F6"/>
+  <text x="386" y="400" fill="#94A3B8" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">重置 6天后</text>
+
+  <rect x="366" y="417" width="468" height="36" rx="10" fill="#FFF4E8"/>
+  <rect x="380" y="426" width="6" height="18" rx="3" fill="#F97316"/>
+  <text x="398" y="441" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="700">API Tokens</text>
+  <text x="667" y="441" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">等待 API 数据源</text>
+  <rect x="366" y="459" width="468" height="42" rx="10" fill="#FFF9F0"/>
+  <text x="386" y="485" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="650">API</text>
+  <text x="526" y="485" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="15" font-weight="700">今日 -- · 5时 -- · 7天 --</text>
+
+  <rect x="366" y="514" width="468" height="36" rx="10" fill="#ECFDF5"/>
+  <rect x="380" y="523" width="6" height="18" rx="3" fill="#10B981"/>
+  <text x="398" y="538" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="700">本机统计</text>
+  <text x="624" y="538" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">来自这台 Mac 的 Codex 日志</text>
+  <rect x="366" y="556" width="468" height="42" rx="10" fill="#F3FCF8"/>
+  <text x="386" y="582" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="650">Token</text>
+  <text x="489" y="582" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="15" font-weight="700">今日 128.4k · 5时 42.1k · 7天 903.8k</text>
+
+  <line x1="366" y1="615" x2="834" y2="615" stroke="#E5E7EB"/>
+  <text x="386" y="643" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15">详细信息</text>
+  <text x="808" y="643" fill="#94A3B8" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">›</text>
+  <text x="386" y="668" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">Sanitized interface mockup. Values are sample data.</text>
+</svg>

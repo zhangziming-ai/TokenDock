@@ -14,6 +14,16 @@ TokenDock 注重清晰、轻量和实用性。它会自动读取本机 Codex 会
 
 无论是日常编码、长时间维护项目，还是追踪 AI 辅助开发过程中的 token 消耗，TokenDock 都能提供一个常驻、直观、可靠的用量入口。
 
+## Screenshots / 界面预览
+
+The images below are sanitized interface mockups. They use sample values and generic file names, with no personal paths, account information, or real usage logs.
+
+以下图片为脱敏界面示意图，仅使用样例数值和通用文件名，不包含个人路径、账号信息或真实用量日志。
+
+![TokenDock compact menu](assets/screenshots/compact-menu.svg)
+
+![TokenDock details menu](assets/screenshots/details-menu.svg)
+
 ## Why TokenDock?
 
 Codex usage information is useful, but checking it through settings panels is slow and easy to forget. Existing menu bar or island-style tools may show ambiguous numbers, mix different accounting methods, or fail to explain where the data comes from.

@@ -1,0 +1,49 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="760" rx="34" fill="#F4F6F8"/>
+  <rect x="96" y="76" width="1008" height="608" rx="28" fill="#FFFFFF" stroke="#D8DEE8"/>
+  <rect x="132" y="116" width="396" height="508" rx="22" fill="#FBFCFE" stroke="#E5EAF2"/>
+  <rect x="162" y="150" width="336" height="38" rx="10" fill="#EAF2FF"/>
+  <text x="184" y="174" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="700">官方额度</text>
+  <rect x="162" y="202" width="336" height="52" rx="10" fill="#F7FAFF"/>
+  <text x="184" y="225" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">5时额度</text>
+  <text x="350" y="225" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="14" font-weight="700">42%</text>
+  <rect x="184" y="238" width="294" height="7" rx="3.5" fill="#CFE0FF"/>
+  <rect x="184" y="238" width="123" height="7" rx="3.5" fill="#3B82F6"/>
+  <rect x="162" y="266" width="336" height="52" rx="10" fill="#F7FAFF"/>
+  <text x="184" y="289" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">7天额度</text>
+  <text x="350" y="289" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="14" font-weight="700">18%</text>
+  <rect x="184" y="302" width="294" height="7" rx="3.5" fill="#CFE0FF"/>
+  <rect x="184" y="302" width="53" height="7" rx="3.5" fill="#3B82F6"/>
+  <rect x="162" y="344" width="336" height="38" rx="10" fill="#FFF4E8"/>
+  <text x="184" y="368" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="700">API Tokens</text>
+  <rect x="162" y="394" width="336" height="44" rx="10" fill="#FFF9F0"/>
+  <text x="184" y="421" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="14">今日 -- · 5时 -- · 7天 --</text>
+  <rect x="162" y="464" width="336" height="38" rx="10" fill="#ECFDF5"/>
+  <text x="184" y="488" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="700">本机统计</text>
+  <rect x="162" y="514" width="336" height="44" rx="10" fill="#F3FCF8"/>
+  <text x="184" y="541" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="14">今日 128.4k · 7天 903.8k</text>
+
+  <rect x="560" y="116" width="508" height="508" rx="22" fill="#FFFFFF" stroke="#D8DEE8"/>
+  <text x="598" y="156" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="22" font-weight="750">详细信息</text>
+  <text x="598" y="185" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14">Low-frequency diagnostics stay in a second-level menu.</text>
+
+  <line x1="598" y1="216" x2="1030" y2="216" stroke="#E5E7EB"/>
+  <text x="598" y="248" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" font-weight="700">官方额度明细</text>
+  <text x="598" y="278" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15">首层口径：最新 reset 窗口内最高 used%</text>
+  <text x="598" y="306" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="14">5时：已用 42% · 剩余 58%</text>
+  <text x="598" y="334" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="14">7天：已用 18% · 剩余 82%</text>
+
+  <line x1="598" y1="360" x2="1030" y2="360" stroke="#E5E7EB"/>
+  <text x="598" y="392" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" font-weight="700">各会话原始值</text>
+  <rect x="598" y="408" width="432" height="46" rx="10" fill="#F8FAFC"/>
+  <text x="616" y="427" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="13">rollout-sample-a.jsonl</text>
+  <text x="616" y="446" fill="#64748B" font-family="SF Mono,Menlo,monospace" font-size="13">14:32:08 · 5时 42% · 7天 18%</text>
+  <rect x="598" y="462" width="432" height="46" rx="10" fill="#F8FAFC"/>
+  <text x="616" y="481" fill="#111827" font-family="SF Mono,Menlo,monospace" font-size="13">rollout-sample-b.jsonl</text>
+  <text x="616" y="500" fill="#64748B" font-family="SF Mono,Menlo,monospace" font-size="13">14:31:41 · 5时 36% · 7天 16%</text>
+
+  <line x1="598" y1="536" x2="1030" y2="536" stroke="#E5E7EB"/>
+  <text x="598" y="568" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" font-weight="700">数据来源</text>
+  <text x="598" y="596" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15">扫描文件：4 个 · 扫描事件：128 条</text>
+  <text x="598" y="626" fill="#64748B" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12">No personal paths or real usage data are shown.</text>
+</svg>
